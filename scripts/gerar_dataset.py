@@ -25,6 +25,16 @@ N_CLIENTES   = 3000
 N_VENDEDORES = 42
 N_PRODUTOS   = 320
 
+# ----------------------------------------------------------------------
+# FUNÇÕES AUXILIARES
+# ----------------------------------------------------------------------
+def escrever(caminho, cabecalho, linhas):
+    """Salva uma lista de linhas como arquivo CSV."""
+    with open(caminho, 'w', newline='', encoding='utf-8') as f:
+        w = csv.writer(f)
+        w.writerow(cabecalho)
+        w.writerows(linhas)
+    print(f'  {os.path.basename(caminho):24} {len(linhas):>8,} linhas'.replace(',', '.'))
 
 def main():
     ap = argparse.ArgumentParser(
@@ -45,6 +55,40 @@ def main():
     print(f'\nGerando dataset  ·  seed={args.seed}')
     print(f'Período: {INICIO} a {FIM}\n')
 
+    # ------------------------------------------------------------------
+    # CRM · VENDEDORES
+    # ------------------------------------------------------------------
+    NOMES = ['Ana','Bruno','Carla','Diego','Eduarda','Felipe','Gabriela',
+             'Henrique','Isabela','João','Karina','Lucas','Mariana','Nathan',
+             'Olívia','Paulo','Queila','Rafael','Sabrina','Thiago']
+    
+    SOBRENOMES = ['Silva','Santos','Oliveira','Souza','Rodrigues','Ferreira',
+                  'Alves','Pereira','Lima','Gomes','Costa','Ribeiro']
+
+    REGIOES = [('São Paulo','SP'), ('Rio de Janeiro','RJ'), 
+               ('Belo Horizonte','MG'), ('Curitiba','PR'),
+               ('Porto Alegre','RS'), ('Salvador','BA')]
+
+    vendedores = []
+    for i in range(1, N_VENDEDORES + 1):
+        regiao, uf = rng.choice(REGIOES)
+        admissao = INICIO - timedelta(days=rng.randint(30, 1500))
+        vendedores.append([
+            i,
+            f'{rng.choice(NOMES)} {rng.choice(SOBRENOMES)}',
+            regiao,
+            uf,
+            admissao.isoformat(),
+            rng.choice([40000, 55000, 70000, 85000, 100000]),
+        ])
+
+    escrever(
+        os.path.join(crm, 'vendedores.csv'),
+        ['vendedor_id', 'nome', 'regiao', 'uf', 'data_admissao', 'meta_mensal'],
+        vendedores
+    )
+
 
 if __name__ == '__main__':
     main()
+
