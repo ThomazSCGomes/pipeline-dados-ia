@@ -1,0 +1,16 @@
+# Dataset gerado localmente — reproduzível com gerar_dataset.py --seed 42
+dados/
+
+# Arquivos do Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
