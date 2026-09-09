@@ -88,6 +88,51 @@ def main():
         vendedores
     )
 
+    # ------------------------------------------------------------------
+    # CRM · CLIENTES
+    # ------------------------------------------------------------------
+    SEGMENTOS = ['Perfumaria', 'Farmácia', 'Loja de shopping', 
+                 'Revendedora autônoma', 'E-commerce', 'Salão de beleza']
+
+    RAZAO_PREFIXO = ['Perfumaria', 'Farmácia', 'Boutique', 'Essência', 
+                     'Comercial', 'Espaço Beleza', 'Aroma']
+    RAZAO_NOME    = ['Aurora', 'Bella Vita', 'Essenza', 'Flor de Liz', 
+                     'Vitória', 'Encanto', 'Nobre', 'Lumiar']
+    RAZAO_SUFIXO  = ['LTDA', 'ME', 'EIRELI', 'LTDA ME']
+
+    clientes = []
+    for i in range(1, N_CLIENTES + 1):
+        regiao, uf = rng.choice(REGIOES)
+        cadastro = INICIO - timedelta(days=rng.randint(0, 1200))
+        razao = f'{rng.choice(RAZAO_PREFIXO)} {rng.choice(RAZAO_NOME)} {rng.choice(RAZAO_SUFIXO)}'
+        porte = rng.choices(['P', 'M', 'G'], weights=[0.55, 0.33, 0.12])[0]
+
+        # SUJEIRA 1: razão social às vezes em caixa alta
+        if rng.random() < 0.08:
+            razao = razao.upper()
+
+        # SUJEIRA 2: data de cadastro em dois formatos
+        if rng.random() < 0.12:
+            dt = cadastro.strftime('%d/%m/%Y')
+        else:
+            dt = cadastro.isoformat()
+
+        clientes.append([
+            i,
+            razao,
+            rng.choice(SEGMENTOS),
+            regiao,
+            uf,
+            porte,
+            dt,
+        ])
+
+    escrever(
+        os.path.join(crm, 'clientes.csv'),
+        ['cliente_id', 'razao_social', 'segmento', 'cidade', 'uf', 'porte', 'data_cadastro'],
+        clientes
+    )
+
 
 if __name__ == '__main__':
     main()
