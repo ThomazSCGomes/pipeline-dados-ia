@@ -133,7 +133,50 @@ def main():
         clientes
     )
 
+    # ------------------------------------------------------------------
+    # ERP · PRODUTOS
+    # ------------------------------------------------------------------
+    CATEGORIAS = {
+        'Eau de Parfum':       (89.00,  420.00, 0.44),
+        'Óleo Concentrado':    (45.00,  260.00, 0.52),
+        'Bakhoor':             (28.00,  180.00, 0.48),
+        'Difusor de Ambiente': (62.00,  210.00, 0.41),
+        'Body Splash':         (32.00,   98.00, 0.38),
+        'Kit Presente':        (120.00, 690.00, 0.35),
+    }
 
+    MARCAS = ['Nadir', 'Sahra', 'Layali', 'Mizan', 'Qamar', 'Rihan', 'Dahab']
+    NOTAS  = ['Oud', 'Âmbar', 'Almíscar', 'Rosa', 'Sândalo', 'Baunilha']
+
+    produtos = []
+    sku_id = 1
+    for cat, (pmin, pmax, margem) in CATEGORIAS.items():
+        for _ in range(N_PRODUTOS // len(CATEGORIAS)):
+            marca = rng.choice(MARCAS)
+            nota  = rng.choice(NOTAS)
+            preco = round(rng.uniform(pmin, pmax), 2)
+            custo = round(preco * (1 - margem - rng.uniform(-0.04, 0.04)), 2)
+            ativo = 'S' if rng.random() > 0.09 else 'N'
+            produtos.append([
+                f'SKU{sku_id:05d}',
+                f'{marca} {nota} {cat}',
+                cat,
+                marca,
+                nota,
+                preco,
+                custo,
+                ativo,
+            ])
+            sku_id += 1
+
+    escrever(
+        os.path.join(erp, 'produtos.csv'),
+        ['sku', 'descricao', 'categoria', 'marca', 'nota_olfativa',
+         'preco_tabela', 'custo_unitario', 'ativo'],
+        produtos
+    )
+
+    
 if __name__ == '__main__':
     main()
 
