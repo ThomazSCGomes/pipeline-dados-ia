@@ -176,6 +176,183 @@ def main():
         produtos
     )
 
+    # ------------------------------------------------------------------
+    # ERP · PEDIDOS E ITENS
+    # ------------------------------------------------------------------
+    CANAIS = ['Visita', 'Telefone', 'App', 'WhatsApp']
+    STATUS = ['Faturado', 'Entregue', 'Cancelado']
+
+    pedidos = []
+    itens   = []
+    ped_id  = 1
+    item_id = 1
+
+    freq = {'P': (55, 130), 'M': (32, 70), 'G': (16, 38)}
+    itens_por_pedido = {'P': (2, 6), 'M': (4, 10), 'G': (6, 16)}
+
+    produtos_ativos = [p for p in produtos if p[7] == 'S']
+
+    for c in clientes:
+        cliente_id = c[0]
+        porte      = c[5]
+        cadastro   = date.fromisoformat(c[6]) if '/' not in c[6] else INICIO
+        d = max(cadastro, INICIO) + timedelta(days=rng.randint(0, 20))
+        lo, hi = freq[porte]
+
+        while d <= FIM:
+            canal     = rng.choice(CANAIS)
+            cancelado = rng.random() < 0.035
+            status    = 'Cancelado' if cancelado else rng.choices(
+                ['Faturado', 'Entregue'], weights=[0.34, 0.62])[0]
+
+            # SUJEIRA: data em dois formatos
+            if rng.random() < 0.12:
+                d_str = d.strftime('%d/%m/%Y')
+            else:
+                d_str = d.isoformat()
+
+            n_it  = rng.randint(*itens_por_pedido[porte])
+            skus  = rng.sample(produtos_ativos, min(n_it, len(produtos_ativos)))
+            total = 0.0
+
+            for p in skus:
+                qtd       = rng.randint(1, 12)
+                preco     = p[5]
+                desc_pct  = rng.choices([0, 0.05, 0.10], weights=[0.6, 0.3, 0.1])[0]
+                praticado = round(preco * (1 - desc_pct), 2)
+                valor     = round(praticado * qtd, 2)
+                total    += valor
+
+                # SUJEIRA: devolução como quantidade negativa
+                if rng.random() < 0.012:
+                    qtd = -abs(qtd)
+
+                itens.append([
+                    item_id, ped_id, p[0], qtd, praticado,
+                    round(desc_pct * 100, 2), valor
+                ])
+                item_id += 1
+
+            valor_pedido = 0.0 if cancelado else round(total, 2)
+            pedidos.append([ped_id, cliente_id, d_str, canal, status, valor_pedido])
+            ped_id += 1
+            d += timedelta(days=rng.randint(lo, hi))
+
+    escrever(
+        os.path.join(erp, 'pedidos.csv'),
+        ['pedido_id', 'cliente_id', 'data_pedido', 'canal', 'status', 'valor_total'],
+        pedidos
+    )
+    escrever(
+        os.path.join(erp, 'itens_pedido.csv'),
+        ['item_id', 'pedido_id', 'sku', 'quantidade', 'preco_praticado',
+         'desconto_pct', 'valor_bruto'],
+        itens
+    )
+
+    # ------------------------------------------------------------------
+    # ERP · PAGAMENTOS
+    # ------------------------------------------------------------------
+    FORMAS_PAGAMENTO = ['Boleto 28 dias', 'PIX', 'Cartão de crédito', 
+                        'Cartão de débito', 'Dinheiro']
+    pagamentos = []
+    pag_id = 1
+    for p in pedidos:
+        if p[4] == 'Cancelado':
+            continue
+        forma   = rng.choice(FORMAS_PAGAMENTO)
+        venc    = date.fromisoformat(p[2]) if '/' not in p[2] else INICIO
+        venc   += timedelta(days=rng.randint(0, 30))
+        status  = rng.choices(
+            ['Pago', 'Pago com atraso', 'Inadimplente', 'Em aberto'],
+            weights=[0.76, 0.14, 0.05, 0.05])[0]
+        pagamentos.append([pag_id, p[0], forma, p[5], venc.isoformat(), status])
+        pag_id += 1
+
+    escrever(
+        os.path.join(erp, 'pagamentos.csv'),
+        ['pagamento_id', 'pedido_id', 'forma_pagamento', 
+         'valor', 'data_vencimento', 'status_pagamento'],
+        pagamentos
+    )
+
+    # ------------------------------------------------------------------
+    # ERP · ESTOQUE
+    # ------------------------------------------------------------------
+    estoque = []
+    d = INICIO
+    while d <= FIM:
+        for p in rng.sample(produtos, min(80, len(produtos))):
+            saldo = rng.randint(0, 800)
+            if rng.random() < 0.11:
+                saldo = 0
+            estoque.append([d.isoformat(), p[0], saldo, 'S' if saldo == 0 else 'N'])
+        d += timedelta(days=7)
+
+    escrever(
+        os.path.join(erp, 'estoque.csv'),
+        ['data_snapshot', 'sku', 'saldo', 'ruptura'],
+        estoque
+    )
+
+    # ------------------------------------------------------------------
+    # CRM · OPORTUNIDADES
+    # ------------------------------------------------------------------
+    ETAPAS  = ['Prospecção', 'Qualificação', 'Proposta enviada', 
+               'Negociação', 'Fechado ganho', 'Fechado perdido']
+    ORIGENS = ['Prospecção ativa', 'Indicação', 'Inbound site', 
+               'Feira de beleza', 'Reativação']
+
+    oportunidades = []
+    op_id = 1
+    for c in clientes:
+        n_op = rng.randint(0, 4)
+        for _ in range(n_op):
+            abertura = INICIO + timedelta(days=rng.randint(0, (FIM - INICIO).days))
+            etapa    = rng.choice(ETAPAS)
+            valor    = round(rng.uniform(2500, 95000), 2)
+            oportunidades.append([
+                op_id, c[0], rng.choice(ORIGENS),
+                abertura.isoformat(), etapa, valor
+            ])
+            op_id += 1
+
+    escrever(
+        os.path.join(crm, 'oportunidades.csv'),
+        ['oportunidade_id', 'cliente_id', 'origem', 
+         'data_abertura', 'etapa', 'valor_estimado'],
+        oportunidades
+    )
+
+    # ------------------------------------------------------------------
+    # CRM · VISITAS
+    # ------------------------------------------------------------------
+    RESULTADOS = ['Pedido realizado', 'Sem pedido', 'Cliente ausente', 
+                  'Reagendada', 'Apenas relacionamento']
+
+    visitas = []
+    vis_id  = 1
+    for c in clientes:
+        d = INICIO
+        while d <= FIM:
+            d += timedelta(days=rng.randint(16, 55))
+            if d > FIM: break
+            if d.weekday() >= 5: continue
+            visitas.append([
+                vis_id, c[0], d.isoformat(),
+                rng.choices(RESULTADOS, weights=[.46,.24,.13,.09,.08])[0],
+                rng.randint(10, 90)
+            ])
+            vis_id += 1
+
+    escrever(
+        os.path.join(crm, 'visitas.csv'),
+        ['visita_id', 'cliente_id', 'data_visita', 'resultado', 'duracao_min'],
+        visitas
+    )
+
+    print(f'\nPronto! Arquivos em: {os.path.abspath(args.saida)}')
+
     
 if __name__ == '__main__':
     main()
